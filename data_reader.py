@@ -17,6 +17,7 @@ from nltk import word_tokenize
 UNK = "<UNK>"
 NONE = "_"
 START = "<START>"
+STOP = "<STOP>"
 
 # Input to the model is a 3-tuple:
 #   (description, caption_x, caption_y)
@@ -93,7 +94,7 @@ def make_encoder(data, token_type="words", min_count=1):
     return encode, decode, vocab_size
 
 
-def load_glove_vectors():
+def load_glove_vectors(fn):
     """
     Return vectors and word_to_id
     L \in M_{40003 x 50}(R) (add rows for special chars)
@@ -106,10 +107,9 @@ def load_glove_vectors():
         NONE: 0,
         UNK: 1,
         START: 2,
-        '\n': 3
+        STOP: 3
     }
 
-    fn = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
     with open(fn, 'r') as f:
         for i,line in enumerate(f, start=2):
             if i == 2:
@@ -123,9 +123,9 @@ def load_glove_vectors():
     return L, word_to_id
 
 
-def glove_encoder():
+def glove_encoder(fn='/data/corpora/word_embeddings/glove/glove.6B.50d.txt'):
     tokenize, join = get_tokenizer("glove")
-    L, word_to_id = load_glove_vectors()
+    L, word_to_id = load_glove_vectors(fn)
     id_to_word = {i:w for w,i in word_to_id.iteritems()}
 
     def encode(seq):
@@ -135,7 +135,7 @@ def glove_encoder():
             if word not in word_to_id:
                 word = UNK
             ids.append(word_to_id[word])
-        ids.append(word_to_id['\n'])
+        ids.append(word_to_id[STOP])
         return ids
 
     def decode(ids):

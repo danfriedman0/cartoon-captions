@@ -189,7 +189,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
             tl = timeline.Timeline(run_metadata.step_stats)
             ctf = tl.generate_chrome_trace_format(show_memory=True)
             with open('timeline.json', 'w') as f:
-              f.write(ctf)
+
     
     return np.exp(np.mean(total_loss))
 
@@ -225,7 +225,7 @@ def get_encoder_outputs(session, model, state, encoder_inputs):
 
 
 def generate_text(session, model, encode, decode, description, d_len, 
-                  stop_length=25, stop_tokens=['\n'], temperature=1.0):
+                  stop_length=25, stop_tokens=['<STOP>'], temperature=1.0):
     init_state = session.run(model["init_state"])
     encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
 

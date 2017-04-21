@@ -207,7 +207,7 @@ def get_encoding(session, model, state, encoder_inputs):
     return encoding
 
 
-def generate_text(session, model, encode, decode, description, stop_length=100, stop_tokens=['\n'], temperature=1.0):
+def generate_text(session, model, encode, decode, description, stop_length=25, stop_tokens=['\n'], temperature=1.0):
     init_state = session.run(model["init_state"])
     encoder_inputs = encode(description)
 

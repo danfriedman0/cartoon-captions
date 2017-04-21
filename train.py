@@ -34,8 +34,8 @@ parser.add_argument("--config_size", help="Config size {small, medium, large}",
                     default="small")
 parser.add_argument("--temperature", help="Temperature for sampling [0,1.0]",
                     type=float, default=1.0)
-parser.add_argument("--sample_every", help="How often to sample (in batches)",
-                    type=int, default=1000)
+parser.add_argument("--sample_every", help="How often to sample (in epochs)",
+                    type=int, default=1)
 parser.add_argument("--save_every", help="How often to save (in epochs)",
                     type=int, default=1)
 parser.add_argument("--log_every", help="How often to log status (in batches)",

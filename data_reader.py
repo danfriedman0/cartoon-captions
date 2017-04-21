@@ -109,8 +109,8 @@ def load_glove_vectors():
 
     fn = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
     with open(fn, 'r') as f:
-        for i,line in enumerate(f, start=3):
-            if i == 0:
+        for i,line in enumerate(f, start=2):
+            if i == 2:
                 continue
             delim = line.index(' ')
             word = line[:delim]

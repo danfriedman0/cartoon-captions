@@ -25,7 +25,7 @@ import lstm_ops
 import data_reader
 from configs import Config
 
-test_description = "A doctor in a mouse costume takes notes on the mice in cages. The doctor in the mouse costume is talking to the doctor in the labcoat. There are many mice in cages all around the two doctors."
+test_description = "Three huge birds wait outside of the window of a man's room. The man is talking on the phone."
 
 parser = argparse.ArgumentParser(description="Train an LSTM language model")
 parser.add_argument("--data_fn", help="Path to data file",
@@ -116,6 +116,7 @@ def train(config):
     print("Loading data...")
     data = data_reader.load_data(args.data_fn)
     if args.debug:
+        data = sorted(data, key=lambda d: len(d[0]))
         data = data[:10]
 
     # Split data
@@ -126,13 +127,13 @@ def train(config):
         config.token_type = "glove"
         config.embed_size = 50
         encode, decode, vocab_size, L = data_reader.glove_encoder()
-        print(vocab_size)
     else:
         L = None
         encode, decode, vocab_size = data_reader.make_encoder(
                                         train_data, config.token_type, 1)
     
-    encoded_data = data_reader.encode_data(data, encode)
+    max_c_len = 15 if args.debug else 25
+    encoded_data = data_reader.encode_data(data, encode, max_c_len)
     encoded_data = [(d,cs) for d,cs in encoded_data if len(d) <= 50]
     encoded_train = encoded_data[:num_train]
     encoded_valid = encoded_data[num_train:]

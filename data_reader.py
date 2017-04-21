@@ -15,7 +15,7 @@ import numpy as np
 from nltk import word_tokenize
 
 UNK = "<UNK>"
-NONE = "_"
+NONE = "<NONE>"
 START = "<START>"
 STOP = "<STOP>"
 
@@ -156,7 +156,7 @@ def encode_data(data, encode, max_len=25):
     for description,captions in data:
         d = encode(description)
         cs = [encode(caption) for caption in captions]
-        if max_len is not None:
+        if max_len is not NONE:
             cs = [c for c in cs if len(c) < max_len]
         encoded_data.append((d, cs))
     return encoded_data

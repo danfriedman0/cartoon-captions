@@ -23,6 +23,7 @@ from tensorflow.python.client import timeline
 
 import data_reader
 import layers
+import cells
 
 
 def load_data(fn,
@@ -63,8 +64,7 @@ def load_data(fn,
 
 def seq2seq_model(encoder_seq_length,
                   decoder_seq_length,
-                  encoder_num_layers,
-                  decoder_num_layers,
+                  num_layers,
                   embed_size,
                   batch_size,
                   hidden_size,
@@ -78,10 +78,10 @@ def seq2seq_model(encoder_seq_length,
                   reuse=False):
     lstm_encoder, init_state = layers.make_lstm(
                             embed_size, hidden_size, batch_size,
-                            encoder_seq_length, encoder_num_layers, dropout)
+                            encoder_seq_length, num_layers, dropout)
     lstm_decoder, _ = layers.make_lstm_with_attention(
                             embed_size+hidden_size, hidden_size, batch_size,
-                            decoder_seq_length, decoder_num_layers, dropout)
+                            decoder_seq_length, num_layers, dropout)
 
     encoder_input_placeholder = tf.placeholder(tf.int32,
         shape=(batch_size, encoder_seq_length), name="encoder_inputs")
@@ -132,6 +132,87 @@ def seq2seq_model(encoder_seq_length,
     }
 
     return model
+
+def tf_seq2seq_model(encoder_seq_length,
+                     decoder_seq_length,
+                     num_layers,
+                     embed_size,
+                     batch_size,
+                     hidden_size,
+                     vocab_size,
+                     dropout,
+                     max_grad_norm,
+                     use_glove,
+                     embeddings=None,
+                     is_training=True,
+                     is_gen_model=False,
+                     reuse=False):
+    encoder_input_placeholder = tf.placeholder(tf.int32,
+        shape=(batch_size, encoder_seq_length), name="encoder_inputs")
+    decoder_input_placeholder = tf.placeholder(tf.int32,
+        shape=(batch_size, decoder_seq_length), name="decoder_inputs")
+    labels_placeholder = tf.placeholder(tf.int32,
+        shape=(batch_size, decoder_seq_length), name="labels")
+
+    encoder_inputs = layers.embed_inputs(encoder_input_placeholder,
+                        vocab_size, embed_size, reuse=reuse)
+    decoder_inputs = layers.embed_inputs(decoder_input_placeholder,
+                        vocab_size, embed_size, reuse=True)
+
+    # cells
+    encoder_cell, init_state = cells.make_tf_lstm_cell(
+                                    batch_size, embed_size, hidden_size,
+                                    num_layers, dropout)
+    decoder_cell, _ = cells.make_tf_lstm_cell(
+                            batch_size, embed_size, hidden_size,
+                            num_layers, dropout)
+
+    with tf.variable_scope("Encoder", reuse=reuse):
+        encoder_outputs, encoding = tf.nn.dynamic_rnn(
+            cell=encoder_cell,
+            inputs=encoder_inputs,
+            sequence_length=tuple(
+                encoder_seq_length for _ in xrange(batch_size)),
+            dtype=tf.float32)
+    with tf.variable_scope("Decoder", reuse=reuse):
+        decoder_outputs, final_state = tf.nn.dynamic_rnn(
+            cell=decoder_cell,
+            inputs=decoder_inputs,
+            sequence_length=tuple(
+                decoder_seq_length for _ in xrange(batch_size)),
+            initial_state=encoding,
+            dtype=tf.float32)
+
+    logits, predictions = layers.project_output(
+        decoder_outputs, hidden_size, vocab_size, reuse)
+
+    if is_training:
+        loss = layers.calculate_sequence_loss(logits, labels_placeholder,
+                    batch_size, decoder_seq_length, vocab_size)
+        optimizer = tf.train.AdamOptimizer()
+        tvars = tf.trainable_variables()
+        grads, _ = tf.clip_by_global_norm(
+            tf.gradients(loss, tvars), max_grad_norm)
+        train_op = optimizer.apply_gradients(zip(grads, tvars))
+    else:
+        train_op = loss = None
+
+    model = {
+        "encoder_input_placeholder": encoder_input_placeholder,
+        "decoder_input_placeholder": decoder_input_placeholder,
+        "labels_placeholder": labels_placeholder,
+        "init_state": init_state,
+        "encoder_outputs": encoder_outputs,
+        "encoding": encoding,
+        "final_state": final_state,
+        "predictions": predictions,
+        "loss": loss,
+        "train_op": train_op
+    }
+
+    return model
+
+
 
 
 def run_epoch(session, model, data_producer, total_steps, log_every,
@@ -204,8 +285,9 @@ def predict(session, model, state, encoder_outputs, x):
     for i, (c,h) in enumerate(model["encoding"]):
         feed_dict[c] = state[i].c
         feed_dict[h] = state[i].h
-    for i, h in enumerate(model["encoder_outputs"]):
-        feed_dict[h] = encoder_outputs[i]
+    # for i, h in enumerate(model["encoder_outputs"]):
+    #     feed_dict[h] = encoder_outputs[i]
+    model["encoder_outputs"] = encoder_outputs
 
     vals = session.run(fetches, feed_dict)
     state = vals["final_state"]
@@ -225,7 +307,8 @@ def get_encoder_outputs(session, model, state, encoder_inputs):
 
 
 def generate_text(session, model, encode, decode, description, d_len, 
-                  stop_length=25, stop_tokens=['<STOP>'], temperature=1.0):
+                  stop_length=25, stop_tokens=['<STOP>', '<NONE>'],
+                  temperature=1.0):
     init_state = session.run(model["init_state"])
     encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
 

@@ -213,10 +213,12 @@ def project_output(outputs, state_size, vocab_size, reuse=False):
     rand_init = tf.random_uniform_initializer(-0.08, 0.08)
     # Project outputs over the vocabulary
     with tf.variable_scope("projection", reuse=reuse):
-        output = tf.reshape(tf.concat(outputs, 1), [-1, state_size])
+        if isinstance(outputs, list):
+            outputs = tf.concat(outputs, 1)
+        output = tf.reshape(outputs, [-1, state_size])
         softmax_W = tf.get_variable("softmax_W",
             [state_size, vocab_size], dtype=tf.float32, initializer=rand_init)
-        softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32,
+        softmax_b = tf.get_variable("softmax_b",[vocab_size], dtype=tf.float32,
             initializer=tf.constant_initializer(0.0))
         logits = tf.matmul(output, softmax_W) + softmax_b
         predictions = tf.nn.softmax(tf.cast(logits, 'float64'))

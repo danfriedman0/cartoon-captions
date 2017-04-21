@@ -54,6 +54,8 @@ parser.add_argument("--token_type", help="Predict words or chars",
                     default="words_lower")
 parser.add_argument("--use_glove", help="Use glove vectors",
                     action="store_true", default=False)
+parser.add_argument("--glove_dir", help="Where is glove",
+                    default="/data/corpora/word_embeddings/glove/glove.6B.50d.txt")
 parser.add_argument("--save_dir", help="Name of directory for saving models",
                     default="cv/test/")
 
@@ -126,7 +128,8 @@ def train(config):
     if args.use_glove:
         config.token_type = "glove"
         config.embed_size = 50
-        encode, decode, vocab_size, L = data_reader.glove_encoder()
+        encode, decode, vocab_size, L = data_reader.glove_encoder(
+                                            args.glove_dir)
     else:
         L = None
         encode, decode, vocab_size = data_reader.make_encoder(
@@ -170,15 +173,13 @@ def train(config):
 
     # Create training model
     with tf.variable_scope("LSTM") as scope:
-        model = lstm_ops.seq2seq_model(
-            d_len, c_len, config.num_layers,
-            config.num_layers, config.embed_size, config.batch_size,
-            config.hidden_size, vocab_size, config.dropout,
+        model = lstm_ops.tf_seq2seq_model(
+            d_len, c_len, config.num_layers, config.embed_size,
+            config.batch_size, config.hidden_size, vocab_size, config.dropout,
             config.max_grad_norm, L,
             is_training=True, is_gen_model=False, reuse=False)
-        gen_model = lstm_ops.seq2seq_model(
-            d_len, 1, gen_config.num_layers,
-            gen_config.num_layers, gen_config.embed_size,
+        gen_model = lstm_ops.tf_seq2seq_model(
+            d_len, 1, gen_config.num_layers, gen_config.embed_size,
             gen_config.batch_size, gen_config.hidden_size, vocab_size, 
             gen_config.dropout, gen_config.max_grad_norm, L,
             is_training=False, is_gen_model=True, reuse=True)

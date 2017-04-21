@@ -146,7 +146,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every):
     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
     run_metadata = tf.RunMetadata()
 
-    for step, (d, x, y) in enumerate(data_producer):
+    for step, (d, x, y) in enumerate(data_producer()):
         start = timer()
 
         feed_dict = {}

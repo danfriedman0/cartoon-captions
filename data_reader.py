@@ -154,8 +154,9 @@ def batch_producer(d_data, ids, c_data, batch_size):
 def get_producer(data, batch_size, d_len, c_len):
     padded_data = pad_data(data, d_len, c_len)
     d_data, ids, c_data = get_training_pairs(padded_data)
-    producer = batch_producer(d_data, ids, c_data, batch_size)
-    return producer, len(ids)
+    def producer():
+        return batch_producer(d_data, ids, c_data, batch_size)
+    return producer, c_data.shape[0] // batch_size
 
 
 def sample(a, temperature=1.0):

@@ -75,9 +75,11 @@ def seq2seq_model(encoder_seq_length,
                   is_training=True,
                   is_gen_model=False,
                   reuse=False):
-    lstm1, init_state1 = layers.make_lstm(embed_size, hidden_size, batch_size,
+    lstm_encoder, init_state = layers.make_lstm(
+                            embed_size, hidden_size, batch_size,
                             encoder_seq_length, encoder_num_layers, dropout)
-    lstm2, init_state2 = layers.make_lstm(embed_size, hidden_size, batch_size,
+    lstm_decoder, _ = layers.make_lstm_with_attention(
+                            embed_size+hidden_size, hidden_size, batch_size,
                             decoder_seq_length, decoder_num_layers, dropout)
 
     encoder_input_placeholder = tf.placeholder(tf.int32,
@@ -93,9 +95,13 @@ def seq2seq_model(encoder_seq_length,
                         vocab_size, embed_size, reuse=True)
 
     with tf.variable_scope("Encoder", reuse=reuse):
-        encoder_outputs, encoding = lstm1(init_state1, encoder_inputs, reuse)
+        encoder_outputs, encoding = lstm_encoder(
+                                        init_state, encoder_inputs, reuse)
+        Hs = tf.stack(encoder_outputs, axis=1)
     with tf.variable_scope("Decoder", reuse=reuse):
-        decoder_outputs, final_state = lstm2(encoding, decoder_inputs, reuse)
+        decoder_outputs, final_state = lstm_decoder(
+                                            encoding, decoder_inputs,
+                                            Hs, reuse)
 
     logits, predictions = layers.project_output(
         decoder_outputs, hidden_size, vocab_size, reuse)
@@ -115,7 +121,8 @@ def seq2seq_model(encoder_seq_length,
         "encoder_input_placeholder": encoder_input_placeholder,
         "decoder_input_placeholder": decoder_input_placeholder,
         "labels_placeholder": labels_placeholder,
-        "init_state": init_state1,
+        "init_state": init_state,
+        "encoder_outputs": encoder_outputs,
         "encoding": encoding,
         "final_state": final_state,
         "predictions": predictions,
@@ -183,7 +190,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
     return np.exp(np.mean(total_loss))
 
 
-def predict(session, model, state, x):
+def predict(session, model, state, encoder_outputs, x):
     fetches = {}
     fetches["final_state"] = model["final_state"]
     fetches["predictions"] = model["predictions"]
@@ -193,6 +200,8 @@ def predict(session, model, state, x):
     for i, (c,h) in enumerate(model["encoding"]):
         feed_dict[c] = state[i].c
         feed_dict[h] = state[i].h
+    for i, h in enumerate(model["encoder_outputs"]):
+        feed_dict[h] = encoder_outputs[i]
 
     vals = session.run(fetches, feed_dict)
     state = vals["final_state"]
@@ -201,28 +210,34 @@ def predict(session, model, state, x):
     return state, predictions
 
 
-def get_encoding(session, model, state, encoder_inputs):
+def get_encoder_outputs(session, model, state, encoder_inputs):
     feed_dict = {model["encoder_input_placeholder"]: [encoder_inputs]}
+    fetches = [model["encoding"], model["encoder_outputs"]]
     for i, (c,h) in enumerate(model["init_state"]):
         feed_dict[c] = state[i].c
         feed_dict[h] = state[i].h
-    encoding = session.run(model["encoding"], feed_dict)
-    return encoding
+    encoding, encoder_outputs = session.run(fetches, feed_dict)
+    return encoding, encoder_outputs
 
 
 def generate_text(session, model, encode, decode, description, stop_length=25, stop_tokens=['\n'], temperature=1.0):
     init_state = session.run(model["init_state"])
     encoder_inputs = encode(description)
 
-    encoding = get_encoding(session, model, init_state, encoder_inputs)
+    encoding, encoder_outputs = get_encoder_outputs(
+                                    session, model, init_state, encoder_inputs)
     start = encode("")
-    state, predictions = predict(session, model, encoding, [start])
+    state, predictions = predict(session, model,
+                                 encoding, encoder_outputs,
+                                 [start])
     output_ids = [data_reader.sample(predictions[0], temperature=temperature)]
     inputs = encode(decode(output_ids))
 
     for i in range(stop_length):
         x = inputs[-1]
-        state, predictions = predict(session, model, state, [[x]])
+        state, predictions = predict(session, model,
+                                     state, encoder_outputs,
+                                     [[x]])
         next_id = data_reader.sample(predictions[0], temperature=temperature)
         output_ids.append(next_id)
         output = decode([next_id])

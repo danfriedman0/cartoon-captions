@@ -98,13 +98,15 @@ def load_glove_vectors():
     Return vectors and word_to_id
     L \in M_{40003 x 50}(R) (add rows for special chars)
     """
-    L = np.zeros((400003, 50), dtype=np.float32)
+    L = np.zeros((400004, 50), dtype=np.float32)
     L[1,:] = np.random.rand(50)
     L[2,:] = np.random.rand(50)
+    L[3,:] = np.random.rand(50)
     word_to_id = {
         NONE: 0,
         UNK: 1,
-        START: 1
+        START: 2,
+        '\n': 3
     }
 
     fn = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
@@ -133,6 +135,7 @@ def glove_encoder():
             if word not in word_to_id:
                 word = UNK
             ids.append(word_to_id[word])
+        ids.append(word_to_id['\n'])
         return ids
 
     def decode(ids):

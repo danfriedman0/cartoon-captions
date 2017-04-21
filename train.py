@@ -37,7 +37,9 @@ parser.add_argument("--temperature", help="Temperature for sampling [0,1.0]",
 parser.add_argument("--sample_every", help="How often to sample (in epochs)",
                     type=int, default=1)
 parser.add_argument("--save_every", help="How often to save (in epochs)",
-                    type=int, default=10)
+                    type=int, default=1)
+parser.add_argument("--log_every", help="How often to log status (in batches)",
+                    type=int, default=100)
 parser.add_argument("--early_stopping",help="Stop after n epochs w. flat loss",
                     type=int, default=2)
 parser.add_argument("--num_layers", help="Number of RNN layers",
@@ -168,10 +170,10 @@ def train(config):
 
             # Train on the epoch and validate
             train_pp = lstm_ops.run_epoch(
-                session, model, train_producer, num_train)
+                session, model, train_producer, num_train, args.log_every)
             print("Validating:")
             valid_pp = lstm_ops.run_epoch(
-                session, model, valid_producer, num_valid)
+                session, model, valid_producer, num_valid, args.log_every)
             print("Validation loss: {}".format(valid_pp))
 
             # Save the model if validation loss has dropped

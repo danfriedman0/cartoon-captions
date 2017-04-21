@@ -43,6 +43,7 @@ def load_data(fn,
                                     train_data, token_type, min_count)
     
     encoded_data = data_reader.encode_data(data, encode)
+    encoded_data = [(d,cs) for d,cs in encoded_data if len(d) <= 50]
     encoded_train = encoded_data[:num_train]
     encoded_valid = encoded_data[num_train:]
 
@@ -125,7 +126,7 @@ def seq2seq_model(encoder_seq_length,
     return model
 
 
-def run_epoch(session, model, data_producer, total_steps, log_every=1):
+def run_epoch(session, model, data_producer, total_steps, log_every):
     """
     Model should contain:
         input_placeholder, labels_placeholder,

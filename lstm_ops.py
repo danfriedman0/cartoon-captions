@@ -228,10 +228,10 @@ def generate_text(session, model, encode, decode, description, d_len,
 
     encoding, encoder_outputs = get_encoder_outputs(
                                     session, model, init_state, encoder_inputs)
-    start = encode("")
+    start = encode("")[0]
     state, predictions = predict(session, model,
                                  encoding, encoder_outputs,
-                                 [start])
+                                 [[start]])
     output_ids = [data_reader.sample(predictions[0], temperature=temperature)]
     inputs = encode(decode(output_ids))
 

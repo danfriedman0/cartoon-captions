@@ -15,7 +15,7 @@ import numpy as np
 from nltk import word_tokenize
 
 UNK = "<UNK>"
-NONE = "<NONE>"
+NONE = "_"
 START = "<START>"
 
 # Input to the model is a 3-tuple:
@@ -50,7 +50,7 @@ def get_tokenizer(token_type="chars"):
         tokenize = lambda s: [w.lower() for w in re.findall(pat, s)]
         join = lambda toks: ' '.join(toks)
     elif token_type == "glove":
-        tokenize = lambda s: word_tokenize(s)
+        tokenize = lambda s: word_tokenize(s.lower())
         join = lambda toks: ' '.join(toks)
     else:
         raise ValueError("Invalid token type: {}".format(token_type))

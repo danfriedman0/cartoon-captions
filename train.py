@@ -34,8 +34,8 @@ parser.add_argument("--config_size", help="Config size {small, medium, large}",
                     default="small")
 parser.add_argument("--temperature", help="Temperature for sampling [0,1.0]",
                     type=float, default=1.0)
-parser.add_argument("--sample_every", help="How often to sample (in epochs)",
-                    type=int, default=1)
+parser.add_argument("--sample_every", help="How often to sample (in batches)",
+                    type=int, default=1000)
 parser.add_argument("--save_every", help="How often to save (in epochs)",
                     type=int, default=1)
 parser.add_argument("--log_every", help="How often to log status (in batches)",
@@ -153,6 +153,10 @@ def train(config):
 
     print("Done.")
 
+    def generate():
+        return lstm_ops.generate_text(session, gen_model, encode, decode,
+                description=test_description, temperature=args.temperature)
+
     with tf.Session() as session:
         best_val_pp = float('inf')
         best_val_epoch = 0
@@ -161,8 +165,7 @@ def train(config):
         saver = tf.train.Saver()
 
         # Sample some text
-        print(lstm_ops.generate_text(session, gen_model, encode, decode,
-            description=test_description, temperature=args.temperature))
+        print(generate())
 
         for epoch in range(config.max_epochs):
             print('Epoch {}'.format(epoch))
@@ -170,10 +173,12 @@ def train(config):
 
             # Train on the epoch and validate
             train_pp = lstm_ops.run_epoch(
-                session, model, train_producer, num_train, args.log_every)
+                session, model, train_producer,
+                num_train, args.log_every, args.sample_every, generate)
             print("Validating:")
             valid_pp = lstm_ops.run_epoch(
-                session, model, valid_producer, num_valid, args.log_every)
+                session, model, valid_producer,
+                num_valid, args.log_every, args.sample_every, generate)
             print("Validation loss: {}".format(valid_pp))
 
             # Save the model if validation loss has dropped
@@ -197,13 +202,9 @@ def train(config):
                 break
 
             print('Total time: {}\n'.format(timer() - start))
-            if epoch % args.sample_every == 0:
-                print(lstm_ops.generate_text(
-                    session, gen_model, encode, decode,
-                    description=test_description,temperature=args.temperature))
+            print(generate())
 
-        print(lstm_ops.generate_text(session, gen_model, encode, decode,
-                description=test_description,temperature=args.temperature))
+        print(generate())
 
 
 def main():

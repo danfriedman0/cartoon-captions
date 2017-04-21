@@ -126,7 +126,8 @@ def seq2seq_model(encoder_seq_length,
     return model
 
 
-def run_epoch(session, model, data_producer, total_steps, log_every):
+def run_epoch(session, model, data_producer, total_steps, log_every,
+              sample_every, generate):
     """
     Model should contain:
         input_placeholder, labels_placeholder,
@@ -176,6 +177,8 @@ def run_epoch(session, model, data_producer, total_steps, log_every):
             with open('timeline.json', 'w') as f:
               f.write(ctf)
             start = timer()
+        if sample_every and step > 0 and step % sample_every == 0:
+            print(generate())
     
     return np.exp(np.mean(total_loss))
 

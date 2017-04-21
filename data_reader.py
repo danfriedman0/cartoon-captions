@@ -12,6 +12,8 @@ import random
 
 import numpy as np
 
+from nltk import word_tokenize
+
 UNK = "<UNK>"
 NONE = "<NONE>"
 START = "<START>"
@@ -46,7 +48,10 @@ def get_tokenizer(token_type="chars"):
     elif token_type == "words_lower":
         pat = re.compile('(\w+\'?\w+|\w|[^ \w\'])')
         tokenize = lambda s: [w.lower() for w in re.findall(pat, s)]
-        join = lambda toks: ' '.join(toks) 
+        join = lambda toks: ' '.join(toks)
+    elif token_type == "glove":
+        tokenize = lambda s: word_tokenize(s)
+        join = lambda toks: ' '.join(toks)
     else:
         raise ValueError("Invalid token type: {}".format(token_type))
     return tokenize, join
@@ -86,6 +91,59 @@ def make_encoder(data, token_type="words", min_count=1):
         return join(words)
 
     return encode, decode, vocab_size
+
+
+def load_glove_vectors():
+    """
+    Return vectors and word_to_id
+    L \in M_{40003 x 50}(R) (add rows for special chars)
+    """
+    L = np.zeros((400003, 50), dtype=np.float32)
+    L[1,:] = np.random.rand(50)
+    L[2,:] = np.random.rand()
+    word_to_id = {
+        NONE: 0,
+        UNK: 1,
+        START: 1
+    }
+
+    fn = '/data/corpora/word_embeddings/glove/glove.6b.50d.txt'
+    with open(fn, 'r') as f:
+        for i,line in enumerate(f, start=3):
+            delim = line.index(' ')
+            word = line[:delim]
+            embed = np.fromstring(line[delim+1:], dtype=np.float32, sep=' ')
+            word_to_id[word] = i
+            L[i,:] = embed
+
+    return L, word_to_id
+
+
+def glove_encoder():
+    tokenize, join = get_tokenizer("glove")
+    L, word_to_id = load_glove_vectors()
+    id_to_word = {i:w for w,i in word_to_id.iteritems()}
+
+    def encode(seq):
+        words = tokenize(seq)
+        ids = [word_to_id[START]]
+        for word in words:
+            if word not in word_to_id:
+                word = UNK
+            ids.append(word_to_id[word])
+        return ids
+
+    def decode(ids):
+        words = []
+        for id_ in ids:
+            if id_ not in id_to_word:
+                words.append(UNK)
+            else:
+                words.append(id_to_word[id_])
+        return join(words)
+
+    return encode, decode, L.shape[0], L
+
 
 
 def encode_data(data, encode, max_len=25):

@@ -35,7 +35,6 @@ def load_data(fn,
     if debug:
         data = data[:10]
 
-
     # Split data
     num_train = int(split_size*len(data))
     train_data = data[:num_train]
@@ -72,6 +71,8 @@ def seq2seq_model(encoder_seq_length,
                   vocab_size,
                   dropout,
                   max_grad_norm,
+                  use_glove,
+                  embeddings=None,
                   is_training=True,
                   is_gen_model=False,
                   reuse=False):
@@ -112,7 +113,7 @@ def seq2seq_model(encoder_seq_length,
         optimizer = tf.train.AdamOptimizer()
         tvars = tf.trainable_variables()
         grads, _ = tf.clip_by_global_norm(
-        tf.gradients(loss, tvars), max_grad_norm)
+            tf.gradients(loss, tvars), max_grad_norm)
         train_op = optimizer.apply_gradients(zip(grads, tvars))
     else:
         train_op = loss = None
@@ -220,9 +221,10 @@ def get_encoder_outputs(session, model, state, encoder_inputs):
     return encoding, encoder_outputs
 
 
-def generate_text(session, model, encode, decode, description, stop_length=25, stop_tokens=['\n'], temperature=1.0):
+def generate_text(session, model, encode, decode, description, d_len, 
+                  stop_length=25, stop_tokens=['\n'], temperature=1.0):
     init_state = session.run(model["init_state"])
-    encoder_inputs = encode(description)
+    encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
 
     encoding, encoder_outputs = get_encoder_outputs(
                                     session, model, init_state, encoder_inputs)

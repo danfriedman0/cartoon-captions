@@ -51,9 +51,11 @@ parser.add_argument("--hidden_size", help="Size of the RNN hidden state",
 parser.add_argument("--dropout", help="keep_prob for dropout",
                     type=float, default=None)
 parser.add_argument("--token_type", help="Predict words or chars",
-                    default="chars")
+                    default="words_lower")
+parser.add_argument("--use_glove", help="Use glove vectors",
+                    action="store_true", default=False)
 parser.add_argument("--save_dir", help="Name of directory for saving models",
-                                        default="cv/test/")
+                    default="cv/test/")
 
 parser.add_argument("--debug", help="Debug", action="store_true",
                     default=False)
@@ -74,7 +76,7 @@ configs["test"] = Config(
     dropout = 1.0,
     batch_size = 5,
     embed_size = 16,
-    token_type= "words")
+    token_type= "words_lower")
 
 configs["small"] = Config(
     max_grad_norm = 5,
@@ -85,7 +87,7 @@ configs["small"] = Config(
     dropout = 1.0,
     batch_size = 50,
     embed_size = 25,
-    token_type= "words")
+    token_type= "words_lower")
 
 configs["medium"] = Config(
     max_grad_norm = 5,
@@ -96,7 +98,7 @@ configs["medium"] = Config(
     dropout = 0.9,
     batch_size = 50,
     embed_size = 50,
-    token_type = "words")
+    token_type = "words_lower")
 
 configs["large"] = Config(
     max_grad_norm = 10,
@@ -106,16 +108,45 @@ configs["large"] = Config(
     max_max_epoch = 55,
     dropout = 0.7,
     batch_size = 50,
-    embed_size = 100,
-    token_type = "words")
+    embed_size = 50,
+    token_type = "words_lower")
 
 def train(config):
     # Load the data
     print("Loading data...")
-    data = lstm_ops.load_data(
-                args.data_fn, config.batch_size, config.token_type,
-                min_count=3, split_size=0.8, debug=args.debug)
-    (train_producer, valid_producer, num_train, num_valid, encode, decode,vocab_size, d_len, c_len) = data
+    data = data_reader.load_data(args.data_fn)
+    if args.debug:
+        data = data[:10]
+
+    # Split data
+    num_train = int(0.8*len(data))
+    train_data = data[:num_train]
+
+    if args.use_glove:
+        config.token_type = "glove"
+        config.embed_size = 50
+        encode, decode, vocab_size, L = data_reader.glove_encoder()
+        print(vocab_size)
+    else:
+        L = None
+        encode, decode, vocab_size = data_reader.make_encoder(
+                                        train_data, config.token_type, 1)
+    
+    encoded_data = data_reader.encode_data(data, encode)
+    encoded_data = [(d,cs) for d,cs in encoded_data if len(d) <= 50]
+    encoded_train = encoded_data[:num_train]
+    encoded_valid = encoded_data[num_train:]
+
+    # Padding width
+    d_len = max([len(d) for d,_ in encoded_data])
+    c_len = max([max([len(c) for c in cs]) for _,cs in encoded_data]) + 1
+    print('Padding to {} and {}'.format(d_len, c_len))
+
+    train_producer, num_train = data_reader.get_producer(
+        encoded_train, config.batch_size, d_len, c_len)
+    valid_producer, num_valid = data_reader.get_producer(
+        encoded_valid, config.batch_size, d_len, c_len)
+
     print("Done. Building model...")
 
     # Create a duplicate of the training model for generating text
@@ -142,20 +173,20 @@ def train(config):
             d_len, c_len, config.num_layers,
             config.num_layers, config.embed_size, config.batch_size,
             config.hidden_size, vocab_size, config.dropout,
-            config.max_grad_norm,
+            config.max_grad_norm, L,
             is_training=True, is_gen_model=False, reuse=False)
         gen_model = lstm_ops.seq2seq_model(
-            len(encode(test_description)), 1, gen_config.num_layers,
+            d_len, 1, gen_config.num_layers,
             gen_config.num_layers, gen_config.embed_size,
             gen_config.batch_size, gen_config.hidden_size, vocab_size, 
-            gen_config.dropout, gen_config.max_grad_norm,
+            gen_config.dropout, gen_config.max_grad_norm, L,
             is_training=False, is_gen_model=True, reuse=True)
 
     print("Done.")
 
     def generate():
         return lstm_ops.generate_text(session, gen_model, encode, decode,
-                description=test_description, temperature=args.temperature)
+                    test_description, d_len, temperature=args.temperature)
 
     with tf.Session() as session:
         best_val_pp = float('inf')

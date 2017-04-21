@@ -197,11 +197,14 @@ def highway_layer(inputs, reuse=False):
         return z
 
 
-def embed_inputs(inputs, vocab_size, embed_size, reuse=False):
-    rand_init = tf.random_uniform_initializer(-0.08, 0.08)
+def embed_inputs(inputs, vocab_size, embed_size, embeddings=None, reuse=False):
+    if embeddings is None:
+        init = tf.random_uniform_initializer(-0.08, 0.08)
+    else:
+        init = tf.constant_initializer(embeddings)
     with tf.variable_scope("embed", reuse=reuse):
         embeddings = tf.get_variable("embeddings",
-            shape=(vocab_size, embed_size), dtype=tf.float32, initializer=rand_init)
+            shape=(vocab_size, embed_size), dtype=tf.float32, initializer=init)
     embedded_inputs = tf.nn.embedding_lookup(embeddings, inputs)
     return embedded_inputs
 

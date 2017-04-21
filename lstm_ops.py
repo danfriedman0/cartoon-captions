@@ -166,8 +166,11 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
             feed_dict[c] = state[i].c
             feed_dict[h] = state[i].h
 
-        vals = session.run(fetches, feed_dict,
-            options=run_options, run_metadata=run_metadata)
+        if step % sample_every == 0:
+            vals = session.run(fetches, feed_dict,
+                options=run_options, run_metadata=run_metadata)
+        else:
+            vals = session.run(fetches, feed_dict)
         state = vals["final_state"]
         loss = vals["loss"]
 
@@ -180,13 +183,13 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
             if step > 0:
                 log_msg += '    {}s/iter'.format(time)
             print(log_msg)
+            start = timer()
+        if sample_every and step > 0 and step % sample_every == 0:
+            print(generate())
             tl = timeline.Timeline(run_metadata.step_stats)
             ctf = tl.generate_chrome_trace_format(show_memory=True)
             with open('timeline.json', 'w') as f:
               f.write(ctf)
-            start = timer()
-        if sample_every and step > 0 and step % sample_every == 0:
-            print(generate())
     
     return np.exp(np.mean(total_loss))
 

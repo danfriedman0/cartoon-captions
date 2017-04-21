@@ -100,16 +100,18 @@ def load_glove_vectors():
     """
     L = np.zeros((400003, 50), dtype=np.float32)
     L[1,:] = np.random.rand(50)
-    L[2,:] = np.random.rand()
+    L[2,:] = np.random.rand(50)
     word_to_id = {
         NONE: 0,
         UNK: 1,
         START: 1
     }
 
-    fn = '/data/corpora/word_embeddings/glove/glove.6b.50d.txt'
+    fn = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
     with open(fn, 'r') as f:
         for i,line in enumerate(f, start=3):
+            if i == 0:
+                continue
             delim = line.index(' ')
             word = line[:delim]
             embed = np.fromstring(line[delim+1:], dtype=np.float32, sep=' ')

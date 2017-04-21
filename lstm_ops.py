@@ -189,7 +189,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
             tl = timeline.Timeline(run_metadata.step_stats)
             ctf = tl.generate_chrome_trace_format(show_memory=True)
             with open('timeline.json', 'w') as f:
-
+              f.write(ctf)
     
     return np.exp(np.mean(total_loss))
 

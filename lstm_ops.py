@@ -216,7 +216,7 @@ def tf_seq2seq_model(encoder_seq_length,
 
 
 def run_epoch(session, model, data_producer, total_steps, log_every,
-              sample_every, generate):
+              sample_every, generate, is_training=True):
     """
     Model should contain:
         input_placeholder, labels_placeholder,
@@ -228,7 +228,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
     fetches = {}
     fetches["loss"] = model["loss"]
     fetches["final_state"] = model["final_state"]
-    if model["train_op"] is not None:
+    if model["train_op"] is not None and is_training:
         fetches["train_op"] = model["train_op"]
 
     state = session.run(model["init_state"])
@@ -336,4 +336,21 @@ def generate_text(session, model, encode, decode, description, d_len,
     output_text = "[" + description + "]\n"
     output_text += decode(output_ids)
     return output_text
+
+
+def generate_text_beam_search(session, model, encode, decode, description, 
+                              d_len, beam=5, stop_length=25, temperature=1.0):
+    init_state = session.run(model["init_state"])
+    encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
+
+    encoding, encoder_outputs = get_encoder_outputs(
+                                    session, model, init_state, encoder_inputs)
+    start = encode("")[0]
+    state, predictions = predict(session, model,
+                                 encoding, encoder_outputs,
+                                 [[start]])
+    cur_probs, cur_ids = data_reader.beam_sample(
+                            predictions[0], beam, temperature)
+    
+
 

@@ -227,4 +227,15 @@ def sample(a, temperature=1.0):
     # from https://github.com/fchollet/keras/blob/master/examples/lstm_text_generation.py
     a = np.log(a) / temperature
     a = np.exp(a) / np.sum(np.exp(a))
+    a.argsort()
     return np.argmax(np.random.multinomial(1, a, 1))
+
+def beam_sample(a, beam, temperature=1.0):
+    # helper function to sample an index from a probability array
+    # from https://github.com/fchollet/keras/blob/master/examples/lstm_text_generation.py
+    a = np.log(a) / temperature
+    a = np.exp(a) / np.sum(np.exp(a))
+    top_ids = np.sort(a)[-beam:]
+    pairs = [(i, a[i]) for i in top_ids]
+    return sorted_probs, sorted_ids
+

@@ -211,7 +211,8 @@ def train(config):
             print("Validating:")
             valid_pp = lstm_ops.run_epoch(
                 session, model, valid_producer,
-                num_valid, args.log_every, args.sample_every, generate)
+                num_valid, args.log_every, args.sample_every, generate,
+                is_training=False)
             print("Validation loss: {}".format(valid_pp))
 
             # Save the model if validation loss has dropped

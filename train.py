@@ -54,6 +54,8 @@ parser.add_argument("--token_type", help="Predict words or chars",
                     default="words_lower")
 parser.add_argument("--use_glove", help="Use glove vectors",
                     action="store_true", default=False)
+parser.add_argument("--use_attention", help="LSTM with attention",
+                    action="store_true", default=False)
 parser.add_argument("--glove_dir", help="Where is glove",
                     default="/data/corpora/word_embeddings/glove/glove.6B.50d.txt")
 parser.add_argument("--save_dir", help="Name of directory for saving models",
@@ -176,12 +178,12 @@ def train(config):
         model = lstm_ops.seq2seq_model(
             d_len, c_len, config.num_layers, config.embed_size,
             config.batch_size, config.hidden_size, vocab_size, config.dropout,
-            config.max_grad_norm, L,
+            config.max_grad_norm, L, args.use_attention,
             is_training=True, is_gen_model=False, reuse=False)
         gen_model = lstm_ops.seq2seq_model(
             d_len, 1, gen_config.num_layers, gen_config.embed_size,
             gen_config.batch_size, gen_config.hidden_size, vocab_size, 
-            gen_config.dropout, gen_config.max_grad_norm, L,
+            gen_config.dropout, gen_config.max_grad_norm, L,args.use_attention,
             is_training=False, is_gen_model=True, reuse=True)
 
     print("Done.")

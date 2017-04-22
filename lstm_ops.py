@@ -72,6 +72,7 @@ def seq2seq_model(encoder_seq_length,
                   dropout,
                   max_grad_norm,
                   use_glove,
+                  use_attention,
                   embeddings=None,
                   is_training=True,
                   is_gen_model=False,
@@ -79,8 +80,13 @@ def seq2seq_model(encoder_seq_length,
     lstm_encoder, init_state = layers.make_lstm(
                             embed_size, hidden_size, batch_size,
                             encoder_seq_length, num_layers, dropout)
-    lstm_decoder, _ = layers.make_lstm_with_attention(
+    if use_attention:
+        lstm_decoder, _ = layers.make_lstm_with_attention(
                             embed_size+hidden_size, hidden_size, batch_size,
+                            decoder_seq_length, num_layers, dropout)
+    else:
+        lstm_decoder, _ = layers.make_lstm(
+                            embed_size, hidden_size, batch_size,
                             decoder_seq_length, num_layers, dropout)
 
     encoder_input_placeholder = tf.placeholder(tf.int32,
@@ -100,9 +106,14 @@ def seq2seq_model(encoder_seq_length,
                                         init_state, encoder_inputs, reuse)
         Hs = tf.stack(encoder_outputs, axis=1)
     with tf.variable_scope("Decoder", reuse=reuse):
-        decoder_outputs, final_state = lstm_decoder(
-                                            encoding, decoder_inputs,
-                                            Hs, reuse)
+        if use_attention:
+            decoder_outputs, final_state = lstm_decoder(
+                                                encoding, decoder_inputs,
+                                                Hs, reuse)
+        else:
+            decoder_outputs, final_state = lstm_decoder(
+                                                encoding, decoder_inputs,
+                                                reuse)
 
     logits, predictions = layers.project_output(
         decoder_outputs, hidden_size, vocab_size, reuse)
@@ -351,6 +362,6 @@ def generate_text_beam_search(session, model, encode, decode, description,
                                  [[start]])
     cur_probs, cur_ids = data_reader.beam_sample(
                             predictions[0], beam, temperature)
-    
+
 
 

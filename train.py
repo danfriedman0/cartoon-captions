@@ -176,15 +176,35 @@ def train(config):
     # Create training model
     with tf.variable_scope("LSTM") as scope:
         model = lstm_ops.seq2seq_model(
-            d_len, c_len, config.num_layers, config.embed_size,
-            config.batch_size, config.hidden_size, vocab_size, config.dropout,
-            config.max_grad_norm, L, args.use_attention,
-            is_training=True, is_gen_model=False, reuse=False)
+                  encoder_seq_length=d_len,
+                  decoder_seq_length=c_len,
+                  num_layers=config.num_layers,
+                  embed_size=config.embed_size,
+                  batch_size=config.batch_size,
+                  hidden_size=config.hidden_size,
+                  vocab_size=vocab_size,
+                  dropout=config.dropout,
+                  max_grad_norm=config.max_grad_norm,
+                  use_attention=args.use_attention,
+                  embeddings=L,
+                  is_training=True,
+                  is_gen_model=False,
+                  reuse=False)
         gen_model = lstm_ops.seq2seq_model(
-            d_len, 1, gen_config.num_layers, gen_config.embed_size,
-            gen_config.batch_size, gen_config.hidden_size, vocab_size, 
-            gen_config.dropout, gen_config.max_grad_norm, L,args.use_attention,
-            is_training=False, is_gen_model=True, reuse=True)
+                  encoder_seq_length=d_len,
+                  decoder_seq_length=1,
+                  num_layers=gen_config.num_layers,
+                  embed_size=gen_config.embed_size,
+                  batch_size=gen_config.batch_size,
+                  hidden_size=config.hidden_size,
+                  vocab_size=vocab_size,
+                  dropout=gen_config.dropout,
+                  max_grad_norm=gen_config.max_grad_norm,
+                  use_attention=args.use_attention,
+                  embeddings=L,
+                  is_training=False,
+                  is_gen_model=True,
+                  reuse=True)
 
     print("Done.")
 

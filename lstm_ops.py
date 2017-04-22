@@ -71,12 +71,11 @@ def seq2seq_model(encoder_seq_length,
                   vocab_size,
                   dropout,
                   max_grad_norm,
-                  use_glove,
                   use_attention,
-                  embeddings=None,
-                  is_training=True,
-                  is_gen_model=False,
-                  reuse=False):
+                  embeddings,
+                  is_training,
+                  is_gen_model,
+                  reuse):
     lstm_encoder, init_state = layers.make_lstm(
                             embed_size, hidden_size, batch_size,
                             encoder_seq_length, num_layers, dropout)
@@ -97,9 +96,9 @@ def seq2seq_model(encoder_seq_length,
         shape=(batch_size, decoder_seq_length), name="labels")
 
     encoder_inputs = layers.embed_inputs(encoder_input_placeholder,
-                        vocab_size, embed_size, reuse=reuse)
+                        vocab_size, embed_size, embeddings, reuse=reuse)
     decoder_inputs = layers.embed_inputs(decoder_input_placeholder,
-                        vocab_size, embed_size, reuse=True)
+                        vocab_size, embed_size, embeddings, reuse=True)
 
     with tf.variable_scope("Encoder", reuse=reuse):
         encoder_outputs, encoding = lstm_encoder(
@@ -153,11 +152,11 @@ def tf_seq2seq_model(encoder_seq_length,
                      vocab_size,
                      dropout,
                      max_grad_norm,
-                     use_glove,
-                     embeddings=None,
-                     is_training=True,
-                     is_gen_model=False,
-                     reuse=False):
+                     use_attention,
+                     embeddings,
+                     is_training,
+                     is_gen_model,
+                     reuse):
     encoder_input_placeholder = tf.placeholder(tf.int32,
         shape=(batch_size, encoder_seq_length), name="encoder_inputs")
     decoder_input_placeholder = tf.placeholder(tf.int32,
@@ -166,9 +165,9 @@ def tf_seq2seq_model(encoder_seq_length,
         shape=(batch_size, decoder_seq_length), name="labels")
 
     encoder_inputs = layers.embed_inputs(encoder_input_placeholder,
-                        vocab_size, embed_size, reuse=reuse)
+                        vocab_size, embed_size, embeddings, reuse=reuse)
     decoder_inputs = layers.embed_inputs(decoder_input_placeholder,
-                        vocab_size, embed_size, reuse=True)
+                        vocab_size, embed_size, embeddings, reuse=True)
 
     # cells
     encoder_cell, init_state = cells.make_tf_lstm_cell(

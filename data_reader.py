@@ -111,8 +111,8 @@ def load_glove_vectors(fn):
     }
 
     with open(fn, 'r') as f:
-        for i,line in enumerate(f, start=2):
-            if i == 2:
+        for i,line in enumerate(f, start=3):
+            if i == 3:
                 continue
             delim = line.index(' ')
             word = line[:delim]

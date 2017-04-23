@@ -297,7 +297,7 @@ def predict(session, model, state, encoder_outputs, x):
         feed_dict[h] = state[i].h
     # for i, h in enumerate(model["encoder_outputs"]):
     #     feed_dict[h] = encoder_outputs[i]
-    model["encoder_outputs"] = encoder_outputs
+    feed_dict[model["encoder_outputs"]] = encoder_outputs
 
     vals = session.run(fetches, feed_dict)
     state = vals["final_state"]

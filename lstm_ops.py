@@ -339,7 +339,7 @@ def generate_text(session, model, encode, decode, description, d_len,
         next_id = data_reader.sample(predictions[0], temperature=temperature)
         output_ids.append(next_id)
         output = decode([next_id])
-        inputs.append(encode(output)[0])
+        inputs.append(next_id)
         if stop_tokens and output in stop_tokens:
             break
 

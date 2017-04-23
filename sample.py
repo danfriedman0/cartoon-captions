@@ -26,32 +26,39 @@ def sample(save_dir):
     if not os.path.isfile(path_to_config):
         raise IOError("Could not find " + path_to_config)
     with open(path_to_config, "rb") as f:
-        config = pickle.load(f)
+        gen_config = pickle.load(f)
 
     # Load vocabulary encoder
-    data = lstm_ops.load_data('data/dataset.json', 1, 'words',
-                min_count=3, split_size=0.8, debug=False)
-    encode, decode, vocab_size = data[4:7]
-
+    glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
+    encode, decode, vocab_size, L = data_reader.glove_encoder(glove_dir)
 
     # Rebuild the model
     with tf.variable_scope("LSTM"):
-        gen_model = lstm_ops.seq2seq_model(50, 1,
-                    config.num_layers, config.num_layers, config.embed_size,
-                    1, config.hidden_size, vocab_size, config.dropout,
-                    config.max_grad_norm, 50,
-                    is_training=False, is_gen_model=True, reuse=False)
+        gen_model = lstm_ops.seq2seq_model(
+                      encoder_seq_length=50,
+                      decoder_seq_length=1,
+                      num_layers=gen_config.num_layers,
+                      embed_size=gen_config.embed_size,
+                      batch_size=gen_config.batch_size,
+                      hidden_size=gen_config.hidden_size,
+                      vocab_size=vocab_size,
+                      dropout=gen_config.dropout,
+                      max_grad_norm=gen_config.max_grad_norm,
+                      use_attention=False,
+                      embeddings=L,
+                      is_training=False,
+                      is_gen_model=True,
+                      reuse=False)
 
     with tf.Session() as session:
         saver = tf.train.Saver()
         saver.restore(session,tf.train.latest_checkpoint('./' + args.save_dir))
 
+
         def generate(description, temperature):
-            # print(seed)
-            # print(len(seed))
             return lstm_ops.generate_text(
-                        session, gen_model, encode, decode, description, 50,
-                        temperature=temperature)
+                        session, gen_model, encode, decode,
+                        description, 50, temperature)
 
         seed = "A doctor in a mouse costume takes notes on the mice in cages. The doctor in the mouse costume is talking to the doctor in the labcoat. There are many mice in cages all around the two doctors."
         temp = 1.0

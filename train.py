@@ -175,7 +175,7 @@ def train(config):
 
     # Create training model
     with tf.variable_scope("LSTM") as scope:
-        model = lstm_ops.tf_seq2seq_model(
+        model = lstm_ops.seq2seq_model(
                   encoder_seq_length=d_len,
                   decoder_seq_length=c_len,
                   num_layers=config.num_layers,
@@ -190,7 +190,7 @@ def train(config):
                   is_training=True,
                   is_gen_model=False,
                   reuse=False)
-        gen_model = lstm_ops.tf_seq2seq_model(
+        gen_model = lstm_ops.seq2seq_model(
                   encoder_seq_length=d_len,
                   decoder_seq_length=1,
                   num_layers=gen_config.num_layers,

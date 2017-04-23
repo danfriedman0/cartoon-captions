@@ -221,9 +221,7 @@ def tf_seq2seq_model(encoder_seq_length,
     }
 
     return model
-
-
-
+    
 
 def run_epoch(session, model, data_producer, total_steps, log_every,
               sample_every, generate, is_training=True):
@@ -295,9 +293,9 @@ def predict(session, model, state, encoder_outputs, x):
     for i, (c,h) in enumerate(model["encoding"]):
         feed_dict[c] = state[i].c
         feed_dict[h] = state[i].h
-    # for i, h in enumerate(model["encoder_outputs"]):
-    #     feed_dict[h] = encoder_outputs[i]
-    feed_dict[model["encoder_outputs"]] = encoder_outputs
+    for i, h in enumerate(model["encoder_outputs"]):
+        feed_dict[h] = encoder_outputs[i]
+    # feed_dict[model["encoder_outputs"]] = encoder_outputs
 
     vals = session.run(fetches, feed_dict)
     state = vals["final_state"]

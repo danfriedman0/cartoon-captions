@@ -29,7 +29,8 @@ def sample(save_dir):
         gen_config = pickle.load(f)
 
     # Load vocabulary encoder
-    glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
+    glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
+    #glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
     encode, decode, vocab_size, L = data_reader.glove_encoder(glove_dir)
 
     # Rebuild the model
@@ -56,7 +57,7 @@ def sample(save_dir):
 
 
         def generate(description, temperature):
-            return lstm_ops.generate_text(
+            return lstm_ops.generate_text_beam_search(
                         session, gen_model, encode, decode,
                         description, 50, temperature=temperature)
 

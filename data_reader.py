@@ -235,7 +235,8 @@ def beam_sample(a, beam, temperature=1.0):
     # from https://github.com/fchollet/keras/blob/master/examples/lstm_text_generation.py
     a = np.log(a) / temperature
     a = np.exp(a) / np.sum(np.exp(a))
-    top_ids = np.sort(a)[-beam:]
-    pairs = [(i, a[i]) for i in top_ids]
-    return sorted_probs, sorted_ids
+    top_ids = np.random.choice(np.arange(a.shape[0]),
+                size=beam, replace=False, p=a)
+    pairs = [(i, np.log(a[i])) for i in top_ids]
+    return pairs
 

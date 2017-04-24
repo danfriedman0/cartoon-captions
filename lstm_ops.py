@@ -320,7 +320,7 @@ def generate_text(session, model, encode, decode, description, d_len,
     init_state = session.run(model["init_state"])
     encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
 
-    encoding, encoder_outputs = get_encoder_outputs(
+    state, encoder_outputs = get_encoder_outputs(
                                     session, model, init_state, encoder_inputs)
     start = encode("")[0]
     # state, predictions = predict(session, model,
@@ -329,7 +329,7 @@ def generate_text(session, model, encode, decode, description, d_len,
     # output_ids = [data_reader.sample(predictions[0], temperature=temperature)]
     # inputs = encode(decode(output_ids))
     inputs = [start]
-
+    output_ids = []
     for i in range(stop_length):
         x = inputs[-1]
         state, predictions = predict(session, model,
@@ -341,10 +341,31 @@ def generate_text(session, model, encode, decode, description, d_len,
         inputs.append(next_id)
         if stop_tokens and output in stop_tokens:
             break
-
     output_text = "[" + description + "]\n"
     output_text += decode(output_ids)
     return output_text
+
+
+class Node(object):
+    def __init__(self, idx, prob, state, prev):
+        self.idx = idx
+        self.prob = prob
+        self.state = state
+        self.prev = prev
+
+    def get_outputs(self):
+        if self.prev is None:
+            return [self.idx]
+        else:
+            outputs = self.prev.get_outputs()
+            outputs.append(self.idx)
+            return outputs
+
+    def __repr__(self):
+        if self.prev is None:
+            return str((self.idx, self.prob, None))
+        else:
+            return str((self.idx, self.prob, self.prev.idx))
 
 
 def generate_text_beam_search(session, model, encode, decode, description, 
@@ -358,8 +379,27 @@ def generate_text_beam_search(session, model, encode, decode, description,
     state, predictions = predict(session, model,
                                  encoding, encoder_outputs,
                                  [[start]])
-    cur_probs, cur_ids = data_reader.beam_sample(
-                            predictions[0], beam, temperature)
+    cur_pairs = data_reader.beam_sample(predictions[0], beam, temperature)
+    cur_nodes = []
+    for idx,prob in cur_pairs:
+        cur_nodes.append(Node(idx, prob, state, None))
 
+    for _ in xrange(stop_length):
+        next_level = []
+        # print('\n'.join([str(node) for node in cur_nodes]))
+        # print('-'*15)
+        for node in cur_nodes:
+            state, predictions = predict(session, model,
+                                         node.state, encoder_outputs,
+                                         [[node.idx]])
+            pairs = data_reader.beam_sample(predictions[0], beam, temperature)
+            next_level += [Node(idx, prob+node.prob, state, node)
+                           for idx,prob in pairs]
+        cur_nodes = sorted(next_level, key=lambda node: node.prob)[-beam:]
 
+    outputs = [node.get_outputs() for node in cur_nodes]
+    decoded_outputs = [decode(output) for output in outputs]
+    output_text = "[" + description + "]\n"
+    output_text += decoded_outputs[-1]
+    return output_text
 

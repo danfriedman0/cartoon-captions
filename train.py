@@ -60,6 +60,8 @@ parser.add_argument("--glove_dir", help="Where is glove",
                     default="/data/corpora/word_embeddings/glove/glove.6B.50d.txt")
 parser.add_argument("--save_dir", help="Name of directory for saving models",
                     default="cv/test/")
+parser.add_argument("--resume_from",help="Reload a model for more training",
+                    default=None)
 
 parser.add_argument("--debug", help="Debug", action="store_true",
                     default=False)
@@ -213,6 +215,11 @@ def train(config):
                     test_description, d_len, temperature=args.temperature)
 
     with tf.Session() as session:
+        if args.resume_from is not None:
+            reload_saver = tf.train.Saver()
+            reload_saver.restore(session,
+                tf.train.latest_checkpoint('./' + args.resume_from))
+
         best_val_pp = float('inf')
         best_val_epoch = 0
 

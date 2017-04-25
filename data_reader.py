@@ -58,7 +58,7 @@ def get_tokenizer(token_type="chars"):
     return tokenize, join
 
 
-def make_encoder(data, token_type="words", min_count=1):
+def make_encoder(data, token_type="words", min_count=0):
     tokenize, join = get_tokenizer(token_type)
     cnt = collections.Counter()
     for d, cs in data:
@@ -156,7 +156,7 @@ def encode_data(data, encode, max_len=25):
     for description,captions in data:
         d = encode(description)
         cs = [encode(caption) for caption in captions]
-        if max_len is not NONE:
+        if max_len is not None:
             cs = [c for c in cs if len(c) < max_len]
         encoded_data.append((d, cs))
     return encoded_data

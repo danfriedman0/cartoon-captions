@@ -137,11 +137,18 @@ def train(config):
     else:
         L = None
         encode, decode, vocab_size = data_reader.make_encoder(
-                                        train_data, config.token_type, 1)
+                                        train_data, config.token_type)
     
-    max_c_len = 15 if args.debug else 25
+
+    if config.token_type == "chars":
+        max_c_len = 100
+        max_d_len = 200
+    else:
+        max_c_len = 15 if args.debug else 25
+        max_d_len = 50
+
     encoded_data = data_reader.encode_data(data, encode, max_c_len)
-    encoded_data = [(d,cs) for d,cs in encoded_data if len(d) <= 50]
+    encoded_data = [(d,cs) for d,cs in encoded_data if len(d) <= max_d_len]
     encoded_train = encoded_data[:num_train]
     encoded_valid = encoded_data[num_train:]
 
@@ -156,6 +163,9 @@ def train(config):
         encoded_valid, config.batch_size, d_len, c_len)
 
     print("Done. Building model...")
+
+    if args.token_type == "chars":
+        config.embed_size = vocab_size
 
     # Create a duplicate of the training model for generating text
     gen_config = deepcopy(config)
@@ -211,8 +221,10 @@ def train(config):
     print("Done.")
 
     def generate():
+        stop_length = 75 if args.token_type == "chars" else 25
         return lstm_ops.generate_text(session, gen_model, encode, decode,
-                    test_description, d_len, temperature=args.temperature)
+                    test_description, d_len, stop_length=stop_length,
+                    temperature=args.temperature)
 
     with tf.Session() as session:
         if args.resume_from is not None:
@@ -277,8 +289,7 @@ def main():
     if args.batch_size is not None: config.batch_size = args.batch_size
     if args.hidden_size is not None: config.hidden_size = args.hidden_size
     if args.dropout is not None: config.dropout = args.dropout
-    if args.token_type == "words":
-        config.token_type = "words"
+    config.token_type = args.token_type
 
     train(config)
 

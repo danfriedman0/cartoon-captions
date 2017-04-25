@@ -30,6 +30,45 @@ def batch_matmul(x, W):
   return xW
 
 
+def make_cnn(input_embed_size, in_channels, filter_widths,
+         filters_by_width, max_filters, reuse=False):
+    embed_size = 0
+
+    # Create filters and biases
+    params = []
+    for i, width in enumerate(filter_widths):
+        with tf.variable_scope("conv{}".format(i), reuse=reuse) as scope:
+            out_channels = filters_by_width * width
+            if max_filters is not None:
+                out_channels = min(out_channels, max_filters)
+            f = tf.get_variable("weights",
+                shape=(input_embed_size, width, in_channels, out_channels),
+                initializer=tf.random_uniform_initializer(-0.05, 0.05),
+                dtype=tf.float32)
+            b = tf.get_variable("biases",
+                shape=(out_channels), dtype=tf.float32,
+                initializer=tf.constant_initializer(0.0))
+            params.append((f, b))
+            embed_size += out_channels
+
+    def cnn(inputs):
+        outputs = []
+        for f, b in params:
+            height = inputs.shape[1]
+            width = inputs.shape[2]
+            conv = tf.nn.conv2d(inputs, f,
+                    strides=[1, height, 1, 1], padding="SAME")
+            activation = tf.tanh(conv + b)
+            pool = tf.nn.max_pool(activation, ksize=[1, 1, width, 1],
+                    strides=[1, 1, width, 1], padding="SAME")
+            output = tf.squeeze(pool, squeeze_dims=[1, 2])
+            outputs.append(output)
+        output = tf.concat(outputs, 1)
+        return output
+
+    return cnn, embed_size
+
+
 def make_lstm(input_size, state_size, batch_size, num_steps, num_layers, dropout, cell_type="lstm"):
     """
     Returns:

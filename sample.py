@@ -32,7 +32,20 @@ def sample(save_dir):
     # glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
     # #glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
     # encode, decode, vocab_size, L = data_reader.glove_encoder(glove_dir)
+    print("Loading data...")
+    data = data_reader.load_data(args.data_fn)
+    if args.debug:
+        data = sorted(data, key=lambda d: len(d[0]))
+        data = data[:10]
+
+    # Split data
+    num_train = int(0.8*len(data))
+    train_data = data[:num_train]
+
+
     L = None
+    encode, decode, vocab_size = data_reader.make_encoder(
+                                    train_data, config.token_type)
 
     # Rebuild the model
     with tf.variable_scope("LSTM"):
@@ -50,6 +63,7 @@ def sample(save_dir):
                       embeddings=L,
                       is_training=False,
                       is_gen_model=True,
+
                       reuse=False)
 
     with tf.Session() as session:

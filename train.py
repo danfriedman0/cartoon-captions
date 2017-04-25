@@ -241,7 +241,9 @@ def train(config):
                     temperature=args.temperature)
 
 
-    with tf.Session() as session:
+    sess_config = tf.ConfigProto()
+    sess_config.gpu_options.allow_growth = True
+    with tf.Session(config=sess_config) as session:
         if args.resume_from is not None:
             reload_saver = tf.train.Saver()
             reload_saver.restore(session,

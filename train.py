@@ -97,13 +97,24 @@ configs["small"] = Config(
     embed_size = 50,
     token_type = "words_lower")
 
+configs["medium"] = Config(
+    max_grad_norm = 5,
+    num_layers = 2,
+    hidden_size = 512,
+    max_epochs = 32,
+    max_max_epoch = 55,
+    dropout = 0.7,
+    batch_size = 50,
+    embed_size = 50,
+    token_type = "words_lower")
+
 configs["large"] = Config(
     max_grad_norm = 10,
     num_layers = 2,
     hidden_size = 1026,
     max_epochs = 32,
     max_max_epoch = 55,
-    dropout = 0.7,
+    dropout = 0.5,
     batch_size = 50,
     embed_size = 50,
     token_type = "words_lower")

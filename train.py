@@ -201,6 +201,7 @@ def train(config):
                   embeddings=L,
                   is_training=True,
                   is_gen_model=False,
+                  token_type=config.token_type,
                   reuse=False)
         gen_model = lstm_ops.seq2seq_model(
                   encoder_seq_length=d_len,
@@ -216,6 +217,7 @@ def train(config):
                   embeddings=L,
                   is_training=False,
                   is_gen_model=True,
+                  token_type=config.token_type,
                   reuse=True)
 
     print("Done.")

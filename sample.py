@@ -28,10 +28,11 @@ def sample(save_dir):
     with open(path_to_config, "rb") as f:
         gen_config = pickle.load(f)
 
-    # Load vocabulary encoder
-    glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
-    #glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
-    encode, decode, vocab_size, L = data_reader.glove_encoder(glove_dir)
+    # # Load vocabulary encoder
+    # glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
+    # #glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
+    # encode, decode, vocab_size, L = data_reader.glove_encoder(glove_dir)
+    L = None
 
     # Rebuild the model
     with tf.variable_scope("LSTM"):
@@ -59,7 +60,7 @@ def sample(save_dir):
         def generate(description, temperature):
             return lstm_ops.generate_text_beam_search(
                         session, gen_model, encode, decode,
-                        description, 50, temperature=temperature)
+                        description, 100, temperature=temperature)
 
         seed = "A doctor in a mouse costume takes notes on the mice in cages. The doctor in the mouse costume is talking to the doctor in the labcoat. There are many mice in cages all around the two doctors."
         temp = 1.0
@@ -68,8 +69,8 @@ def sample(save_dir):
 
         while raw_input("Sample again? (y/n): ") != "n":
             new_seed = raw_input("seed: ")
-            if len(encode(seed)) > 50:
-                print("Description must be < 50 words")
+            if len(encode(seed)) > 200:
+                print("Description must be < 200 chars")
                 continue
             new_temp = raw_input("temp: ")
 

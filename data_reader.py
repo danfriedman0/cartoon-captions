@@ -14,10 +14,10 @@ import numpy as np
 
 from nltk import word_tokenize
 
-UNK = "<UNK>"
-NONE = "<NONE>"
-START = "<START>"
-STOP = "<STOP>"
+UNK = "[UNK]"
+NONE = "[0]"
+START = "[START]"
+STOP = "[STOP]"
 
 # Input to the model is a 3-tuple:
 #   (description, caption_x, caption_y)
@@ -66,7 +66,7 @@ def make_encoder(data, token_type="words", min_count=0):
         for c in cs:
             cnt.update(tokenize(c))
     tokens = [t for t in cnt if cnt[t] > min_count]
-    id_to_word = dict(enumerate(tokens, start=1))
+    id_to_word = dict(enumerate(sorted(tokens), start=1))
     id_to_word[0] = NONE
     id_to_word[len(id_to_word)] = UNK
     id_to_word[len(id_to_word)] = START

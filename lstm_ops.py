@@ -26,6 +26,12 @@ import layers
 import cells
 
 
+UNK = "[UNK]"
+NONE = "[0]"
+START = "[START]"
+STOP = "[STOP]"
+
+
 def load_data(fn,
               batch_size,
               token_type,
@@ -97,8 +103,10 @@ def seq2seq_model(encoder_seq_length,
         shape=(batch_size, decoder_seq_length), name="labels")
 
     if token_type == "chars":
-        encoder_inputs = tf.one_hot(encoder_input_placeholder, dtype=tf.int32)
-        decoder_inputs = tf.one_hot(decoder_input_placeholder, dtype=tf.int32)
+        encoder_inputs = tf.one_hot(encoder_input_placeholder,
+                                    vocab_size, dtype=tf.float32)
+        decoder_inputs = tf.one_hot(decoder_input_placeholder,
+                                    vocab_size, dtype=tf.float32)
     else:
         encoder_inputs = layers.embed_inputs(encoder_input_placeholder,
                             vocab_size, embed_size, embeddings, reuse=reuse)
@@ -277,12 +285,13 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
                 step, total_steps, np.exp(np.mean(total_loss)))
             if step > 0:
                 log_msg += '    {}s/iter'.format(time)
-            print(log_msg)
+            sys.stdout.write(log_msg + '\r')
+            sys.stdout.flush()
             start = timer()
         if sample_every and step > 0 and step % sample_every == 0:
             print(generate())
             tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format(show_memory=True)
+            ctf = tl.generate_chrome_trace_format()
             with open('timeline.json', 'w') as f:
               f.write(ctf)
     
@@ -321,7 +330,7 @@ def get_encoder_outputs(session, model, state, encoder_inputs):
 
 
 def generate_text(session, model, encode, decode, description, d_len, 
-                  stop_length=25, stop_tokens=['<STOP>', '<NONE>'],
+                  stop_length=25, stop_tokens=[STOP, NONE],
                   temperature=1.0):
     init_state = session.run(model["init_state"])
     encoder_inputs = data_reader.pad(encode(description), d_len, 'left')

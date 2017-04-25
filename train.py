@@ -12,7 +12,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import pickle
+import dill as pickle
 import os
 
 from copy import deepcopy
@@ -52,12 +52,14 @@ parser.add_argument("--dropout", help="keep_prob for dropout",
                     type=float, default=None)
 parser.add_argument("--token_type", help="Predict words or chars",
                     default="words_lower")
+
 parser.add_argument("--use_glove", help="Use glove vectors",
                     action="store_true", default=False)
 parser.add_argument("--use_attention", help="LSTM with attention",
                     action="store_true", default=False)
 parser.add_argument("--glove_dir", help="Where is glove",
                     default="/data/corpora/word_embeddings/glove/glove.6B.50d.txt")
+
 parser.add_argument("--save_dir", help="Name of directory for saving models",
                     default="cv/test/")
 parser.add_argument("--resume_from",help="Reload a model for more training",
@@ -120,7 +122,7 @@ configs["large"] = Config(
 def train(config):
     # Load the data
     print("Loading data...")
-    data = data_reader.load_data(args.data_fn)
+    data = data_reader.load_data(config.data_fn)
     if args.debug:
         data = sorted(data, key=lambda d: len(d[0]))
         data = data[:10]
@@ -129,16 +131,19 @@ def train(config):
     num_train = int(0.8*len(data))
     train_data = data[:num_train]
 
-    if args.use_glove:
+    if config.use_glove:
         config.token_type = "glove"
         config.embed_size = 50
         encode, decode, vocab_size, L = data_reader.glove_encoder(
-                                            args.glove_dir)
+                                            config.glove_dir)
     else:
         L = None
         encode, decode, vocab_size = data_reader.make_encoder(
                                         train_data, config.token_type)
     
+    config.encode = encode
+    config.decode = decode
+    config.vocab_size = vocab_size
 
     if config.token_type == "chars":
         max_c_len = 100
@@ -153,8 +158,9 @@ def train(config):
     encoded_valid = encoded_data[num_train:]
 
     # Padding width
-    d_len = max([len(d) for d,_ in encoded_data])
-    c_len = max([max([len(c) for c in cs]) for _,cs in encoded_data]) + 1
+    config.d_len = d_len = max([len(d) for d,_ in encoded_data])
+    config.c_len = c_len = max([max([len(c) for c in cs])
+                                for _,cs in encoded_data]) + 1
     print('Padding to {} and {}'.format(d_len, c_len))
 
     train_producer, num_train = data_reader.get_producer(
@@ -164,7 +170,7 @@ def train(config):
 
     print("Done. Building model...")
 
-    if args.token_type == "chars":
+    if config.token_type == "chars":
         config.embed_size = vocab_size
 
     # Create a duplicate of the training model for generating text
@@ -223,10 +229,17 @@ def train(config):
     print("Done.")
 
     def generate():
-        stop_length = 75 if args.token_type == "chars" else 25
-        return lstm_ops.generate_text(session, gen_model, encode, decode,
-                    test_description, d_len, stop_length=stop_length,
+        return lstm_ops.generate_text_beam_search(
+                    session=session,
+                    model=gen_model,
+                    encode=gen_config.encode,
+                    decode=gen_config.decode,
+                    description=test_description,
+                    d_len=gen_config.d_len,
+                    beam=5,
+                    stop_length=gen_config.c_len,
                     temperature=args.temperature)
+
 
     with tf.Session() as session:
         if args.resume_from is not None:
@@ -292,6 +305,10 @@ def main():
     if args.hidden_size is not None: config.hidden_size = args.hidden_size
     if args.dropout is not None: config.dropout = args.dropout
     config.token_type = args.token_type
+    config.use_attention = args.use_attention
+    config.use_glove = args.use_glove
+    config.glove_dir = args.glove_dir
+    config.data_fn = args.data_fn
 
     train(config)
 

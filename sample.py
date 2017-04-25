@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import sys
 import argparse
-import pickle
+import dill as pickle
 import os
 
 from copy import deepcopy
@@ -31,60 +31,56 @@ def sample(save_dir):
     # # Load vocabulary encoder
     # glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
     # #glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
-    # encode, decode, vocab_size, L = data_reader.glove_encoder(glove_dir)
-    print("Loading data...")
-    data = data_reader.load_data(args.data_fn)
-    if args.debug:
-        data = sorted(data, key=lambda d: len(d[0]))
-        data = data[:10]
-
-    # Split data
-    num_train = int(0.8*len(data))
-    train_data = data[:num_train]
-
-
-    L = None
-    encode, decode, vocab_size = data_reader.make_encoder(
-                                    train_data, config.token_type)
+    if gen_config.use_glove:
+        _, _, _, L = data_reader.glove_encoder(gen_config.glove_dir)
+    else:
+        L = None
 
     # Rebuild the model
     with tf.variable_scope("LSTM"):
         gen_model = lstm_ops.seq2seq_model(
-                      encoder_seq_length=50,
+                      encoder_seq_length=gen_config.d_len,
                       decoder_seq_length=1,
                       num_layers=gen_config.num_layers,
                       embed_size=gen_config.embed_size,
                       batch_size=gen_config.batch_size,
                       hidden_size=gen_config.hidden_size,
-                      vocab_size=vocab_size,
+                      vocab_size=gen_config.vocab_size,
                       dropout=gen_config.dropout,
                       max_grad_norm=gen_config.max_grad_norm,
-                      use_attention=False,
+                      use_attention=gen_config.use_attention,
                       embeddings=L,
                       is_training=False,
                       is_gen_model=True,
-
+                      token_type=gen_config.token_type,
                       reuse=False)
 
     with tf.Session() as session:
         saver = tf.train.Saver()
         saver.restore(session,tf.train.latest_checkpoint('./' + args.save_dir))
 
-
         def generate(description, temperature):
             return lstm_ops.generate_text_beam_search(
-                        session, gen_model, encode, decode,
-                        description, 100, temperature=temperature)
+                        session=session,
+                        model=gen_model,
+                        encode=gen_config.encode,
+                        decode=gen_config.decode,
+                        description=description,
+                        d_len=gen_config.d_len,
+                        beam=5,
+                        stop_length=gen_config.c_len,
+                        temperature=temperature)
 
-        seed = "A doctor in a mouse costume takes notes on the mice in cages. The doctor in the mouse costume is talking to the doctor in the labcoat. There are many mice in cages all around the two doctors."
+        seed = "Three huge birds wait outside of the window of a man's room. The man is talking on the phone."
         temp = 1.0
 
         print(generate(seed, temp))
 
-        while raw_input("Sample again? (y/n): ") != "n":
+        while raw_input("Sample again? ([y]/n): ") != "n":
             new_seed = raw_input("seed: ")
-            if len(encode(seed)) > 200:
-                print("Description must be < 200 chars")
+            if len(gen_config.encode(seed)) > gen_config.d_len:
+                print(
+                    "Description must be < {} tokens".format(gen_config.d_len))
                 continue
             new_temp = raw_input("temp: ")
 

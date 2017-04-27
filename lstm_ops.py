@@ -416,7 +416,7 @@ def generate_text_beam_search(session, model, encode, decode, description,
     outputs = [node.get_outputs() for node in cur_nodes]
     decoded_outputs = [decode(output) for output in outputs]
     if get_output_tokens:
-        return decoded_outputs
+        return decoded_outputs[-1]
     output_text = "[" + description + "]\n"
     output_text += decoded_outputs[-1]
     return output_text

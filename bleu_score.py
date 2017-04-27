@@ -100,8 +100,12 @@ def sample(save_dir):
 
         for i,description in enumerate(descriptions):
             print('{}/{} : {}'.format(i, len(descriptions), description))
-            hypothesis = generate(description)
-            print(hypothesis)
+            s = generate(description)
+            print(s)
+            if config.token_type == 'chars':
+                hypothesis = list(s)
+            else:
+                hypothesis = s.split(' ')
             if '[STOP]' in hypothesis:
                 stop_idx = hypothesis.index('[STOP]')
                 hypothesis = hypothesis[:stop_idx]

@@ -92,7 +92,8 @@ def sample(save_dir):
                         beam=5,
                         stop_length=config.c_len,
                         temperature=temperature,
-                        get_output_tokens=1)
+                        get_output_tokens=1,
+                        deterministic=True)
 
 
         hypotheses = []

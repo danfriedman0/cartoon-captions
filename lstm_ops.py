@@ -385,7 +385,7 @@ class Node(object):
 
 def generate_text_beam_search(session, model, encode, decode, description, 
                               d_len, beam=5, stop_length=25, temperature=1.0,
-                              get_output_tokens=False):
+                              get_output_tokens=False, deterministic=False):
     init_state = session.run(model["init_state"])
     encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
 
@@ -395,7 +395,8 @@ def generate_text_beam_search(session, model, encode, decode, description,
     state, predictions = predict(session, model,
                                  encoding, encoder_outputs,
                                  [[start]])
-    cur_pairs = data_reader.beam_sample(predictions[0], beam, temperature)
+    cur_pairs = data_reader.beam_sample(predictions[0], beam, temperature,
+                                        deterministic)
     cur_nodes = []
     for idx,prob in cur_pairs:
         cur_nodes.append(Node(idx, prob, state, None))
@@ -408,7 +409,8 @@ def generate_text_beam_search(session, model, encode, decode, description,
             state, predictions = predict(session, model,
                                          node.state, encoder_outputs,
                                          [[node.idx]])
-            pairs = data_reader.beam_sample(predictions[0], beam, temperature)
+            pairs = data_reader.beam_sample(predictions[0], beam, temperature,
+                                            deterministic)
             next_level += [Node(idx, prob+node.prob, state, node)
                            for idx,prob in pairs]
         cur_nodes = sorted(next_level, key=lambda node: node.prob)[-beam:]

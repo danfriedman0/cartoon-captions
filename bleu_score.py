@@ -99,9 +99,9 @@ def sample(save_dir):
         references = []
 
         for i,description in enumerate(descriptions):
-            print('{}/{} : {}'.format(i, len(descriptions), description))
+            print('{}/{}'.format(i, len(descriptions)))
+            print(description)
             s = generate(description)
-            print(s)
             if config.token_type == 'chars':
                 hypothesis = list(s)
             else:
@@ -109,7 +109,7 @@ def sample(save_dir):
             if '[STOP]' in hypothesis:
                 stop_idx = hypothesis.index('[STOP]')
                 hypothesis = hypothesis[:stop_idx]
-            print(hypothesis)
+            print(' '.join(hypothesis))
             hypotheses.append(hypothesis)
             references.append(captions[i])
 

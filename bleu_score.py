@@ -91,17 +91,17 @@ def sample(save_dir):
                         d_len=config.d_len,
                         beam=5,
                         stop_length=config.c_len,
-                        temperature=temperature)
+                        temperature=temperature,
+                        get_output_tokens=1)
 
 
         hypotheses = []
         references = []
 
-        for i,d in enumerate(descriptions):
-            print('{}/{}'.format(i, len(description)))
-            hypothesis = generate(d)[len(d)+3]
+        for i,description in enumerate(descriptions):
+            print('{}/{} : {}'.format(i, len(descriptions), description))
+            hypothesis = generate(description)
             print(hypothesis)
-            hypothesis = tokenize(generate(d))
             if '[STOP]' in hypothesis:
                 stop_idx = hypothesis.index('[STOP]')
                 hypothesis = hypothesis[:stop_idx]

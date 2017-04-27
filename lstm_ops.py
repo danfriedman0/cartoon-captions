@@ -296,7 +296,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
               f.write(ctf)
     
     return np.exp(np.mean(total_loss))
-    
+
 
 def predict(session, model, state, encoder_outputs, x):
     fetches = {}
@@ -384,7 +384,8 @@ class Node(object):
 
 
 def generate_text_beam_search(session, model, encode, decode, description, 
-                              d_len, beam=5, stop_length=25, temperature=1.0):
+                              d_len, beam=5, stop_length=25, temperature=1.0,
+                              get_output_tokens=False):
     init_state = session.run(model["init_state"])
     encoder_inputs = data_reader.pad(encode(description), d_len, 'left')
 
@@ -414,6 +415,8 @@ def generate_text_beam_search(session, model, encode, decode, description,
 
     outputs = [node.get_outputs() for node in cur_nodes]
     decoded_outputs = [decode(output) for output in outputs]
+    if get_output_tokens:
+        return decoded_outputs
     output_text = "[" + description + "]\n"
     output_text += decoded_outputs[-1]
     return output_text

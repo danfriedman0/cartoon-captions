@@ -60,7 +60,7 @@ def sample(save_dir):
     with tf.variable_scope("LSTM"):
         model = lstm_ops.seq2seq_model(
                       encoder_seq_length=config.d_len,
-                      decoder_seq_length=config.c_len,
+                      decoder_seq_length=1,
                       num_layers=config.num_layers,
                       embed_size=config.embed_size,
                       batch_size=config.batch_size,
@@ -98,11 +98,12 @@ def sample(save_dir):
         references = []
 
         for i,d in enumerate(descriptions):
-            sys.stdout.write('{}/{}\r'.format(i, len(descriptions)))
-            sys.stdout.flush()
-            hypothesis = tokenize(generate(d))[len(d)+3:]
-            stop_idx = hypothesis.index('[STOP]')
-            if stop_idx > -1:
+            print('{}/{}'.format(i, len(description)))
+            hypothesis = generate(d)[len(d)+3]
+            print(hypothesis)
+            hypothesis = tokenize(generate(d))
+            if '[STOP]' in hypothesis:
+                stop_idx = hypothesis.index('[STOP]')
                 hypothesis = hypothesis[:stop_idx]
             print(hypothesis)
             hypotheses.append(hypothesis)

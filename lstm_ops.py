@@ -258,8 +258,8 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
     run_metadata = tf.RunMetadata()
 
+    start = timer()
     for step, (d, x, y) in enumerate(data_producer()):
-        start = timer()
 
         feed_dict = {}
         feed_dict[model["encoder_input_placeholder"]] = d
@@ -296,7 +296,7 @@ def run_epoch(session, model, data_producer, total_steps, log_every,
               f.write(ctf)
     
     return np.exp(np.mean(total_loss))
-
+    
 
 def predict(session, model, state, encoder_outputs, x):
     fetches = {}

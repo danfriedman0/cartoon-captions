@@ -43,6 +43,9 @@ def sample(save_dir):
 
     # Load the data
     data = data_reader.load_data(config.data_fn)
+    if args.debug:
+        data = data[:10]
+
     descriptions = [d for d,_ in data]
     raw_captions = [cs for _,cs in data]
     tokenize, join = data_reader.get_tokenizer(config.token_type)
@@ -82,12 +85,12 @@ def sample(save_dir):
             return lstm_ops.generate_text_beam_search(
                         session=session,
                         model=model,
-                        encode=model.encode,
-                        decode=model.decode,
+                        encode=config.encode,
+                        decode=config.decode,
                         description=description,
-                        d_len=model.d_len,
+                        d_len=config.d_len,
                         beam=5,
-                        stop_length=model.c_len,
+                        stop_length=config.c_len,
                         temperature=temperature)
 
 

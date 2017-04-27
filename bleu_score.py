@@ -31,6 +31,8 @@ def sample(save_dir):
     with open(path_to_config, "rb") as f:
         config = pickle.load(f)
 
+    print("Loading data...")
+
     # # Load vocabulary encoder
     # glove_dir = '/Users/danfriedman/Box Sync/My Box Files/9 senior spring/gen/glove/glove.6B/glove.6B.50d.txt'
     # #glove_dir = '/data/corpora/word_embeddings/glove/glove.6B.50d.txt'
@@ -44,7 +46,12 @@ def sample(save_dir):
     descriptions = [d for d,_ in data]
     raw_captions = [cs for _,cs in data]
     tokenize, join = data_reader.get_tokenizer(config.token_type)
+
+    print("Done. Tokenizing...")
+
     captions = [[tokenize(c) for c in cs] for cs in raw_captions]
+
+    print("Done. Rebuilding the model...")
 
     # Rebuild the model
     with tf.variable_scope("LSTM"):
@@ -64,6 +71,8 @@ def sample(save_dir):
                       is_gen_model=True,
                       token_type=config.token_type,
                       reuse=False)
+
+    print("Done.")
 
     with tf.Session() as session:
         saver = tf.train.Saver()
@@ -88,10 +97,10 @@ def sample(save_dir):
         for i,d in enumerate(descriptions):
             sys.stdout.write('{}/{}\r'.format(i, len(descriptions)))
             sys.stdout.flush()
-            hypothesis = tokenize(generate(d))
+            hypothesis = tokenize(generate(d))[len(d)+3:]
             stop_idx = hypothesis.index('[STOP]')
             if stop_idx > -1:
-                hypothesis = hypothesis[len(d)+3:stop_idx]
+                hypothesis = hypothesis[:stop_idx]
             print(hypothesis)
             hypotheses.append(hypothesis)
             references.append(captions[i])

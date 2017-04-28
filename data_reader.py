@@ -51,7 +51,7 @@ def get_tokenizer(token_type="chars"):
         tokenize = lambda s: [w.lower() for w in re.findall(pat, s)]
         join = lambda toks: ' '.join(toks)
     elif token_type == "glove":
-        tokenize = lambda s: word_tokenize(s.lower())
+        tokenize = lambda s: s.lower().split(' ')
         join = lambda toks: ' '.join(toks)
     else:
         raise ValueError("Invalid token type: {}".format(token_type))

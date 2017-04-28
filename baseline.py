@@ -8,6 +8,7 @@ import math
 import argparse
 import string
 import dill as pickle
+import numpy as np
 
 from collections import Counter
 from nltk import word_tokenize
@@ -122,20 +123,32 @@ class NgramModel(object):
             token = ngram[-1]
             if context not in self.probs:
                 self.probs[context] = {}
-            try:
-                self.probs[context][token] = math.log(counts[ngram] /
-                                                  backoff.counts[context])
-            except:
-                print(ngram, context)
-                return
+            self.probs[context][token] = (counts[ngram] /
+                                          backoff.counts[context])
+            if self.probs[context][token] == 0:
+                print(context, token)
+                print(counts[ngram])
+                print(backoff.counts[context])
+                break
+
+
+        # normalize the probabilities
+        for context in self.probs:
+            tokens, probs = zip(*self.probs[context].iteritems())
+            total = sum(probs)
+            if total == 0:
+                print(context, tokens, probs)
+            for token,prob in zip(tokens,probs):
+                self.probs[context][token] = prob / total
+
 
     def generate_one(self, context):
         if self.n == 1:
             return '_'
         if context in self.probs:
-            tokens = sorted(self.probs[context].keys(),
-                            key=lambda key: -self.probs[context][key])
-            return tokens[0]
+            tokens, probs = zip(*self.probs[context].iteritems())
+            token = np.random.choice(tokens, p=probs)
+            return token
         else:
             return self.backoff.generate_one(tuple(context[1:]))
 
@@ -149,6 +162,8 @@ class NgramModel(object):
             context = tuple(output[-self.n+1:])
             next_word = self.generate_one(context)
             output.append(next_word)
+            if next_word == STOP:
+                break
 
         return output
 
@@ -170,13 +185,17 @@ def train():
     # with open(args.save_dir + 'model.pkl', 'w') as f:
     #     pickle.dump(model, f)
 
-    print("Done.")
+    # print("Done.")
 
-    for description,_ in data:
+    seed1 = "Two men sit at the bar and talk over drinks . The man with the tail is talking to the man without a tail . Both men are wearing suits and look professional ."
+    seed2 = "A doctor is talking to a patient . The doctor is reading from a piece of paper in his hands . The paper is on fire ."
+    descriptions = [seed1, seed2]
+    for description in descriptions:
         keywords = get_keywords(description, n-2)
-        print(description)
+        print('description: ' + ' '.join(description))
         print('keywords: ' + ' '.join(keywords))
-        print(' '.join(model.generate(20, tuple(keywords + [START]))))
+        for _ in xrange(10):
+            print(' '.join(model.generate(20, tuple(keywords + [START]))))
 
 
 def main():
